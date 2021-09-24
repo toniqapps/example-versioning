@@ -52,7 +52,7 @@ import torch.optim as optim
 
 from tqdm import tqdm
 from torch import nn
-from torch.utils.data import DataLoader, Dataset, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset
 from torchvision import datasets, models, transforms
 
 torch.manual_seed(1)
@@ -76,14 +76,16 @@ batch_size = 10
 dog_label = 0
 cat_label = 1
 
+
 def get_vgg16_model_pretrained_exclude_top():
     model = models.vgg16(pretrained=True)
     return model.features[:]
 
+
 def load_dataset_from_data_dir():
     data_transforms = transforms.Compose([
         transforms.Resize((img_width, img_height)),
-        transforms.ToTensor(), # Rescales data by 1./255
+        transforms.ToTensor(),  # Rescales data by 1./255
     ])
     train_data = datasets.ImageFolder(train_data_dir, transform=data_transforms)
     validation_data = datasets.ImageFolder(validation_data_dir, transform=data_transforms)
@@ -91,12 +93,14 @@ def load_dataset_from_data_dir():
     validation_loader = DataLoader(validation_data, batch_size=batch_size, shuffle=False)
     return train_loader, validation_loader
 
+
 def load_dataset_from_numpy_data(data_x, data_y, shuffle=False):
-    tensor_x = torch.Tensor(data_x) # transform to torch tensor
+    tensor_x = torch.Tensor(data_x)  # transform to torch tensor
     tensor_y = torch.Tensor(data_y)
 
-    out_dataset = TensorDataset(tensor_x,tensor_y)
+    out_dataset = TensorDataset(tensor_x, tensor_y)
     return DataLoader(out_dataset, batch_size=batch_size, shuffle=shuffle)
+
 
 def model_predict_generator(model, dataloader):
     model.train()
@@ -110,9 +114,10 @@ def model_predict_generator(model, dataloader):
             features = torch.cat((features, out))
     return features.detach().numpy()
 
+
 def model_fit(model, train_loader, validation_loader, epochs, batch_size, optimizer, criterion, metrics_file):
     metrics_f = open(metrics_file, "w")
-    metrics_f.write(f'epoch,accuracy,loss,val_accuracy,val_loss,dog_accuracy,cat_accuracy\n')
+    metrics_f.write('epoch,accuracy,loss,val_accuracy,val_loss,dog_accuracy,cat_accuracy\n')
     for epoch in range(epochs):
         print("Epoch {}/{}".format(epoch+1, epochs))
         pbar = tqdm(train_loader)
@@ -128,7 +133,7 @@ def model_fit(model, train_loader, validation_loader, epochs, batch_size, optimi
             optimizer.step()
             train_loss += loss
             train_correct += (train_pred == train_target).sum()
-            pbar.set_description(desc= f'loss={loss.item()} batch_id={batch_idx}')
+            pbar.set_description(desc=f'loss={loss.item()} batch_id={batch_idx}')
         train_loss /= len(train_loader.dataset)
         train_accuracy = 100. * (train_correct / len(train_loader.dataset))
 
@@ -140,8 +145,7 @@ def model_fit(model, train_loader, validation_loader, epochs, batch_size, optimi
             for batch_idx, (val_data, val_label) in enumerate(validation_loader):
                 val_pred = model(val_data).squeeze()
                 val_target = val_label.squeeze()
-                l = criterion(val_pred, val_target).item()
-                val_loss += l
+                val_loss = criterion(val_pred, val_target).item()
                 val_correct += (val_pred == val_target).sum()
                 for idx, val_l in enumerate(val_target):
                     if val_l == dog_label:
@@ -158,8 +162,11 @@ def model_fit(model, train_loader, validation_loader, epochs, batch_size, optimi
             cat_val_accuracy = 100. * (cat_val_correct / cat_total)
             print('\nVal_Loss: {:.4f}, Val_Accuracy: {:.0f}%, Dog_Val_Accuracy: {:.0f}%, Cat_Val_Accuracy: {:.0f}%\n'.format(
                 val_loss, val_accuracy, dog_val_accuracy, cat_val_accuracy
-            )) 
-            metrics_f.write(f'{epoch},{train_accuracy},{train_loss},{val_accuracy},{val_loss},{dog_val_accuracy},{cat_val_accuracy}\n')
+            ))
+            metrics_f.write(
+                f'{epoch},{train_accuracy},{train_loss},{val_accuracy},' +
+                f'{val_loss},{dog_val_accuracy},{cat_val_accuracy}\n'
+            )
 
 
 def save_bottlebeck_features():
@@ -177,6 +184,7 @@ def save_bottlebeck_features():
             bottleneck_features_validation)
     print("Saved bottleneck validation features")
 
+
 class CatDogNN(nn.Module):
     def __init__(self):
         super(CatDogNN, self).__init__()
@@ -193,6 +201,7 @@ class CatDogNN(nn.Module):
         x = self.flatten(x)
         logits = self.linear_relu_stack(x)
         return logits
+
 
 def train_top_model():
     train_data = np.load(open('bottleneck_features_train.npy', 'rb'), allow_pickle=True)
