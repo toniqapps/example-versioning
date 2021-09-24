@@ -1,7 +1,5 @@
 pillow
 scipy
 tqdm>=4.41.0,<5
-torch==1.9.1; platform_system == "Darwin"
-torchvision==0.10.1; platform_system == "Darwin"
-torch==1.9.1+cpu; platform_system == "Linux"
-torchvision==0.10.1+cpu; platform_system == "Linux"
+torch==1.9.1
+torchvision==0.10.1
